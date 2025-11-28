@@ -4,6 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>MUSE Artistry</title>
+  
+  <!-- 1. 錯誤偵測器 (如果有錯，會直接彈窗告訴你) -->
+  <script>
+    window.onerror = function(msg, url, line, col, error) {
+      // 忽略 ResizeObserver loop limit 這種無害錯誤
+      if (msg.includes("ResizeObserver")) return;
+      alert("⚠️ 程式發生錯誤，請截圖給工程師：\n" + msg + "\n(第 " + line + " 行)");
+    };
+  </script>
+
+  <!-- Vue & Tailwind -->
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
@@ -11,7 +22,7 @@
   
   <script>
     // ============================================================================
-    // ★★★ 已替換為您的專屬 API 網址 (V29 旗艦版) ★★★
+    // ★★★ 已自動填入您的網址 (V29) ★★★
     // ============================================================================
     const API_URL = "https://script.google.com/macros/s/AKfycbwuh3VrXEXquHM_wqexKNazXJaUCU98JU5UVM8sRsaoEzSsy-9c8W3jPRcfyIT4SrMl/exec?format=json";
   </script>
@@ -44,8 +55,8 @@
     .cal-cell { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px; position: relative; font-size: 13px; font-weight: 500; transition: background 0.2s; }
     .cal-cell.today { border: 2px solid #B68D8D; color: #B68D8D; font-weight: 700; }
     .cal-cell.selected { background-color: #B68D8D; color: white; }
-    .cal-cell.off-day { background-color: #F3F4F6; color: #D1D5DB; pointer-events: none; } /* 店休灰底 */
-    .cal-dot { width: 6px; height: 6px; background-color: #E11D48; border-radius: 50%; margin-top: 4px; box-shadow: 0 2px 4px rgba(225, 29, 72, 0.3); } /* 預約紅點 */
+    .cal-cell.off-day { background-color: #F3F4F6; color: #D1D5DB; pointer-events: none; } 
+    .cal-dot { width: 6px; height: 6px; background-color: #E11D48; border-radius: 50%; margin-top: 4px; box-shadow: 0 2px 4px rgba(225, 29, 72, 0.3); } 
     
     /* 日檢視卡片 */
     .schedule-card { background-color: #1F2937; color: white; border-left: 4px solid #F43F5E; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
@@ -184,12 +195,8 @@
     </div>
     
     <!-- Admin Tabs -->
-    <div class="flex p-2 bg-white border-b border-gray-100">
-      <button @click="switchAdminTab('pos')" :class="adminTab==='pos'?'text-rose-900 bg-rose-50 font-bold':'text-gray-400'" class="flex-1 py-2 rounded-lg text-xs transition">開單</button>
-      <button @click="switchAdminTab('schedule')" :class="adminTab==='schedule'?'text-rose-900 bg-rose-50 font-bold':'text-gray-400'" class="flex-1 py-2 rounded-lg text-xs transition">排程</button>
-      <button @click="switchAdminTab('orders')" :class="adminTab==='orders'?'text-rose-900 bg-rose-50 font-bold':'text-gray-400'" class="flex-1 py-2 rounded-lg text-xs transition">訂單</button>
-      <button @click="switchAdminTab('dashboard')" :class="adminTab==='dashboard'?'text-rose-900 bg-rose-50 font-bold':'text-gray-400'" class="flex-1 py-2 rounded-lg text-xs transition">戰情</button>
-      <button @click="switchAdminTab('members')" :class="adminTab==='members'?'text-rose-900 bg-rose-50 font-bold':'text-gray-400'" class="flex-1 py-2 rounded-lg text-xs transition">會員</button>
+    <div class="flex p-2 bg-white border-b border-gray-100 overflow-x-auto">
+      <button v-for="t in ['pos','schedule','orders','dashboard','members']" :key="t" @click="switchAdminTab(t)" :class="adminTab===t?'text-rose-900 bg-rose-50 font-bold':'text-gray-400'" class="flex-1 py-2 px-3 rounded-lg text-xs capitalize whitespace-nowrap">{{ t==='pos'?'開單':t==='schedule'?'排程':t==='orders'?'訂單':t==='members'?'會員':'戰情' }}</button>
     </div>
 
     <div class="flex-1 overflow-y-auto p-4 space-y-6 pb-24">
@@ -222,7 +229,7 @@
           <button @click="changeScheduleDate(1)" class="w-8 h-8 flex items-center justify-center bg-white rounded-full shadow-sm text-gray-500"><i class="ri-arrow-right-s-line"></i></button>
         </div>
 
-        <!-- Month View (Visual Fix) -->
+        <!-- Month View -->
         <div v-if="schedMode==='month'" class="bg-white p-4 rounded-2xl shadow-sm">
           <div class="cal-grid mb-2"><div v-for="d in ['日','一','二','三','四','五','六']" class="cal-head">{{d}}</div></div>
           <div class="cal-grid">
@@ -230,13 +237,12 @@
             <div v-for="d in monthDays" :key="d" @click="selectDateFromCal(d)" 
                  :class="['cal-cell', isToday(d)?'today':'', isSelected(d)?'selected':'', isOffDay(d)?'off-day':'']">
               {{ d }}
-              <!-- 紅點標記 -->
               <div v-if="hasEvent(d)" class="cal-dot"></div>
             </div>
           </div>
         </div>
 
-        <!-- Day View (Visual Fix) -->
+        <!-- Day View -->
         <div v-if="schedMode==='day'" class="space-y-2">
           <div v-if="daySlots.length===0" class="text-center py-10 text-gray-400 text-sm">讀取中...</div>
           <div v-for="s in daySlots" :key="s.time" class="flex gap-3 items-center">
