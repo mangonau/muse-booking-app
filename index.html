@@ -4,14 +4,21 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>MUSE Artistry</title>
+  <!-- Vue 3 -->
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Icons & Fonts -->
   <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Noto+Serif+TC:wght@400;600&family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+  
   <script>
-    // ★★★ 請確認網址無誤，結尾是 /exec ★★★
-    const API_URL = "https://script.google.com/macros/s/AKfycbwuh3VrXEXquHM_wqexKNazXJaUCU98JU5UVM8sRsaoEzSsy-9c8W3jPRcfyIT4SrMl/exec";
+    // =========================================================================
+    // ★★★ 已替換為您的專屬 API 網址 (V27 完整版) ★★★
+    // =========================================================================
+    const API_URL = "https://script.google.com/macros/s/AKfycbwuh3VrXEXquHM_wqexKNazXJaUCU98JU5UVM8sRsaoEzSsy-9c8W3jPRcfyIT4SrMl/exec?format=json";
   </script>
+
   <script>
     tailwind.config = {
       theme: {
@@ -27,21 +34,25 @@
   <style>
     body { background-color: #FDFBF7; color: #4A4A4A; -webkit-tap-highlight-color: transparent; }
     .hide-scroll::-webkit-scrollbar { display: none; }
-    .slide-up-enter-active, .slide-up-leave-active { transition: transform 0.3s ease; }
+    /* 動畫 */
+    .slide-up-enter-active, .slide-up-leave-active { transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
     .slide-up-enter-from, .slide-up-leave-to { transform: translateY(100%); }
     .fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
     .fade-enter-from, .fade-leave-to { opacity: 0; }
-    /* 日期輸入框強制樣式 */
-    input[type="date"] { background-color: white; color: #1a1a1a; padding: 12px; border-radius: 12px; border: 1px solid #e5e7eb; width: 100%; min-height: 48px; }
-    
-    /* 月曆網格 */
-    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
-    .cal-head { font-size: 10px; color: #9ca3af; font-weight: bold; padding-bottom: 4px; }
-    .cal-cell { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px; font-size: 12px; position: relative; cursor: pointer; transition: all 0.2s; }
+    /* 日期輸入框修復 */
+    input[type="date"] { 
+      background-color: #ffffff; 
+      color: #1a1a1a; 
+      appearance: none; 
+      -webkit-appearance: none;
+      min-height: 50px;
+    }
+    /* 行事曆網格 */
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; font-size: 12px; }
+    .cal-cell { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 50%; cursor: pointer; }
     .cal-cell.today { border: 1px solid #B68D8D; color: #B68D8D; font-weight: bold; }
     .cal-cell.selected { background-color: #B68D8D; color: white; }
-    .cal-cell.has-event::after { content:''; width:4px; height:4px; background-color: #A3B18A; border-radius:50%; margin-top:2px; }
-    .cal-cell.busy::after { background-color: #F87171; }
+    .cal-cell.has-event::after { content:''; width:4px; height:4px; background-color: #A3B18A; border-radius:50%; margin-top:2px; position:absolute; bottom:2px; }
     
     /* 週檢視 */
     .week-col { min-width: 60px; border-right: 1px solid #f3f4f6; padding: 4px; text-align: center; }
@@ -49,25 +60,42 @@
   </style>
 </head>
 <body>
+
 <div id="app" class="max-w-[480px] mx-auto min-h-screen bg-cream shadow-2xl relative flex flex-col overflow-hidden">
 
-  <!-- ================= 1. 首頁 ================= -->
+  <!-- ================= 1. 首頁 (Home) ================= -->
   <div v-show="view === 'home'" class="flex-1 overflow-y-auto hide-scroll pb-24 relative">
-    <button @click="showLookup = true" class="absolute top-6 right-6 z-30 w-10 h-10 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/30 shadow-lg"><i class="ri-coupon-3-line text-lg"></i></button>
+    
+    <!-- 查單按鈕 -->
+    <button @click="showLookup = true" class="absolute top-6 right-6 z-30 w-10 h-10 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/30 shadow-lg active:scale-95 transition">
+      <i class="ri-coupon-3-line text-lg"></i>
+    </button>
+
+    <!-- Hero Image -->
     <div class="relative h-[360px]">
       <img :src="config.ShopImage" @error="handleImgError" class="w-full h-full object-cover">
       <div class="absolute inset-0 bg-gradient-to-t from-[#4a4a4a]/70 to-transparent"></div>
       <div class="absolute bottom-8 left-8 text-cream">
         <h1 class="text-4xl font-serif font-bold text-white mb-3">{{ config.ShopName || 'Loading...' }}</h1>
         <div class="inline-flex items-center bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/30">
-          <span class="w-2 h-2 rounded-full mr-2 shadow-sm" :class="isOpenNow ? 'bg-sage' : 'bg-red-400'"></span>
+          <span class="w-2 h-2 rounded-full mr-2 shadow-[0_0_8px_rgba(255,255,255,0.8)]" :class="isOpenNow ? 'bg-sage' : 'bg-red-400'"></span>
           <span class="text-xs font-sans tracking-wide text-white">{{ isOpenNow ? '營業中' : '休息中' }}</span>
         </div>
       </div>
     </div>
+
+    <!-- 導航列 -->
     <div class="px-6 -mt-6 relative z-10 space-y-4">
-      <a :href="config.MapUrl" target="_blank" class="bg-white/90 backdrop-blur-md w-full py-4 rounded-2xl flex items-center justify-between px-6 shadow-soft hover:bg-white transition"><div class="flex items-center gap-4"><div class="w-12 h-12 rounded-full bg-cream flex items-center justify-center text-2xl text-rose-500"><i class="ri-map-pin-2-fill"></i></div><div><div class="text-[10px] text-rose-400 font-bold uppercase tracking-widest">門店地址</div><div class="text-sm font-bold text-rose-900 line-clamp-1">{{ config.Address }}</div></div></div><i class="ri-arrow-right-line text-rose-300"></i></a>
+      <a :href="config.MapUrl" target="_blank" class="bg-white/90 backdrop-blur-md w-full py-4 rounded-2xl flex items-center justify-between px-6 shadow-soft hover:bg-white transition">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 rounded-full bg-cream flex items-center justify-center text-2xl text-rose-500"><i class="ri-map-pin-2-fill"></i></div>
+          <div><div class="text-[10px] text-rose-400 font-bold uppercase tracking-widest">門店地址</div><div class="text-sm font-bold text-rose-900 line-clamp-1">{{ config.Address }}</div></div>
+        </div>
+        <i class="ri-arrow-right-line text-rose-300"></i>
+      </a>
     </div>
+
+    <!-- 服務列表 -->
     <div class="px-6 mt-8 pb-10">
       <div class="flex gap-6 overflow-x-auto hide-scroll pb-2 mb-4 border-b border-rose-100/50">
         <button v-for="cat in categories" :key="cat" @click="activeCat = cat" :class="['text-sm font-serif font-bold px-1 py-2 transition whitespace-nowrap', activeCat === cat ? 'text-rose-900 border-b-2 border-rose-500' : 'text-gray-300']">{{ cat }}</button>
@@ -83,60 +111,98 @@
         </div>
       </div>
     </div>
+    
+    <!-- Admin Lock -->
     <div class="py-6 flex justify-center"><button @click="view = 'login'" class="text-rose-100 hover:text-rose-300 p-4"><i class="ri-lock-2-line"></i></button></div>
   </div>
 
-  <!-- Booking Sheet -->
+  <!-- ================= 2. 預約表單 (Booking Sheet) ================= -->
   <transition name="slide-up">
     <div v-if="showBooking" class="fixed inset-0 z-50 flex flex-col justify-end">
       <div class="absolute inset-0 bg-[#4a4a4a]/60 backdrop-blur-sm" @click="showBooking=false"></div>
+      
       <div class="bg-cream w-full rounded-t-[40px] p-8 max-h-[90vh] overflow-y-auto relative z-10 shadow-2xl">
         <button @click="showBooking=false" class="absolute top-6 right-6 w-10 h-10 bg-white rounded-full shadow-sm flex items-center justify-center text-rose-900"><i class="ri-close-line text-xl"></i></button>
-        <div class="flex gap-5 mb-8 items-center"><img :src="form.svcImage" @error="handleImgError" class="w-20 h-20 rounded-2xl object-cover shadow-md"><div><h2 class="text-2xl font-serif font-bold text-rose-900">{{ form.serviceName }}</h2><p class="text-gray-400 font-sans text-sm mt-1">${{ form.price }}</p></div></div>
+
+        <div class="flex gap-5 mb-8 items-center"><img :src="form.svcImage" @error="handleImgError" class="w-20 h-20 rounded-2xl object-cover shadow-md"><div><h2 class="text-2xl font-serif font-bold text-rose-900">{{ form.serviceName }}</h2><p class="text-gray-400 font-sans text-sm mt-1">${{ form.price }} · {{ form.duration }} 分鐘</p></div></div>
+
         <div class="space-y-6">
            <div>
-             <label class="block text-xs font-bold text-rose-400 uppercase tracking-widest mb-2">預約日期</label>
-             <input type="date" v-model="form.date" @change="fetchSlots" :min="todayStr">
+             <label class="block text-xs font-bold text-rose-400 uppercase tracking-widest mb-3">選擇日期</label>
+             <input type="date" v-model="form.date" @change="fetchSlots" :min="todayStr" class="w-full p-4 rounded-2xl font-bold text-rose-900 shadow-sm border border-gray-100 focus:ring-2 focus:ring-rose-200 outline-none">
            </div>
+
            <div v-if="form.date" class="animate-fade">
-             <label class="block text-xs font-bold text-rose-400 uppercase tracking-widest mb-2">選擇時段</label>
+             <label class="block text-xs font-bold text-rose-400 uppercase tracking-widest mb-3">選擇時段</label>
              <div v-if="loadingSlots" class="py-4 text-center"><i class="ri-loader-4-line animate-spin text-rose-400 text-2xl"></i></div>
              <div v-else-if="slotsStatus==='closed'" class="py-4 text-center bg-white rounded-2xl text-gray-400 text-sm">本日公休</div>
              <div v-else-if="slots.length>0" class="grid grid-cols-4 gap-2">
-               <button v-for="s in slots" :key="s.time" @click="s.available ? form.time=s.time : null" :disabled="!s.available" :class="form.time===s.time ? 'bg-rose-500 text-white shadow-lg' : (s.available ? 'bg-white text-rose-900 border hover:border-rose-300' : 'bg-gray-100 text-gray-300')" class="py-3 rounded-xl text-sm font-bold transition">{{ s.time }}</button>
+               <button v-for="s in slots" :key="s.time" @click="s.available ? form.time=s.time : null" :disabled="!s.available"
+                 :class="form.time===s.time ? 'bg-rose-500 text-white shadow-lg' : (s.available ? 'bg-white text-rose-900 border hover:border-rose-300' : 'bg-gray-100 text-gray-300')"
+                 class="py-3 rounded-xl text-sm font-bold transition relative font-sans">{{ s.time }}</button>
              </div>
-             <div v-else class="py-4 text-center bg-white rounded-2xl text-red-300 text-sm">額滿</div>
+             <div v-else class="py-4 text-center bg-white rounded-2xl text-red-300 text-sm">本日已額滿</div>
            </div>
+           
            <div v-else class="p-4 border-2 border-dashed border-rose-200 rounded-2xl text-center text-rose-400 text-sm font-sans bg-white/50">👆 請先點擊上方選擇預約日期</div>
+
            <div v-if="form.time" class="space-y-4 animate-fade">
-             <div class="grid grid-cols-2 gap-3"><input v-model="form.name" placeholder="您的姓名" class="p-4 bg-white rounded-2xl outline-none shadow-sm"><input v-model="form.phone" type="tel" placeholder="手機號碼" class="p-4 bg-white rounded-2xl outline-none shadow-sm"></div>
-             <button @click="submitOrder" :disabled="loading" class="w-full bg-rose-500 text-white py-5 rounded-2xl font-serif font-bold text-lg shadow-lg flex justify-center items-center gap-2"><span v-if="loading"><i class="ri-loader-4-line animate-spin"></i></span><span v-else>確認預約</span></button>
+             <div class="grid grid-cols-2 gap-3">
+               <input v-model="form.name" placeholder="您的姓名" class="p-4 bg-white rounded-2xl outline-none font-sans shadow-sm">
+               <input v-model="form.phone" type="tel" placeholder="手機號碼" class="p-4 bg-white rounded-2xl outline-none font-sans shadow-sm">
+             </div>
+             <button @click="submitOrder" :disabled="loading" class="w-full bg-rose-500 text-white py-5 rounded-2xl font-serif font-bold text-lg shadow-lg mt-4 flex justify-center items-center gap-2"><span v-if="loading"><i class="ri-loader-4-line animate-spin"></i></span><span v-else>確認預約</span></button>
            </div>
         </div><div class="h-10"></div>
       </div>
     </div>
   </transition>
 
-  <!-- Admin -->
+  <!-- ================= 3. 顧客查單 (Lookup) ================= -->
+  <transition name="slide-up">
+    <div v-if="showLookup" class="fixed inset-0 z-50 flex flex-col justify-end">
+      <div class="absolute inset-0 bg-[#4a4a4a]/60 backdrop-blur-sm" @click="showLookup=false"></div>
+      <div class="bg-cream w-full rounded-t-[40px] p-8 max-h-[85vh] overflow-y-auto relative z-10">
+        <button @click="showLookup=false" class="absolute top-6 right-6 w-10 h-10 bg-white rounded-full shadow-sm flex items-center justify-center text-rose-900"><i class="ri-close-line text-xl"></i></button>
+        <h2 class="text-2xl font-serif font-bold text-rose-900 mb-6">我的預約</h2>
+        <div class="flex gap-3 mb-8">
+          <input v-model="lookupPhone" type="tel" placeholder="輸入手機號碼查詢" class="flex-1 p-4 bg-white rounded-2xl outline-none font-sans font-bold shadow-sm text-rose-900">
+          <button @click="doLookup" class="bg-rose-900 text-white w-16 rounded-2xl font-bold shadow-lg flex items-center justify-center"><i v-if="loading" class="ri-loader-4-line animate-spin"></i><i v-else class="ri-search-line text-xl"></i></button>
+        </div>
+        <div v-if="myOrders.length > 0" class="space-y-4">
+          <div v-for="o in myOrders" :key="o.id" class="bg-white p-5 rounded-2xl shadow-soft flex justify-between items-center relative overflow-hidden">
+             <div class="w-1.5 h-full bg-rose-400 absolute left-0 top-0"></div>
+             <div><div class="flex items-center gap-2 mb-1"><span class="text-[10px] font-bold text-gray-400 tracking-wider">#{{ o.id }}</span><span class="text-[10px] bg-rose-50 text-rose-500 px-2 py-0.5 rounded-full font-bold">{{ o.status }}</span></div><h3 class="font-serif font-bold text-rose-900">{{ o.service }}</h3><p class="text-xs text-gray-400 mt-0.5">{{ o.date }} · {{ o.time }}</p></div>
+             <div class="text-right"><span class="block text-lg font-serif font-bold text-rose-900">${{ o.final }}</span></div>
+          </div>
+        </div>
+        <div v-else-if="lookupSearched" class="text-center py-10 text-gray-400 font-serif italic">查無預約資料</div><div class="h-10"></div>
+      </div>
+    </div>
+  </transition>
+
+  <!-- ================= 4. 後台管理 (Admin) ================= -->
   <div v-if="view === 'admin'" class="fixed inset-0 z-50 bg-cream overflow-y-auto flex flex-col">
+    <!-- Header -->
     <div class="bg-white px-6 py-4 flex justify-between items-center shadow-sm sticky top-0 z-20">
       <h2 class="font-serif font-bold text-xl text-rose-900">店長後台</h2>
       <button @click="logout" class="text-xs bg-gray-100 text-gray-500 px-3 py-1.5 rounded-lg font-bold">登出</button>
     </div>
     
+    <!-- Admin Tabs -->
     <div class="flex p-2 bg-white border-b border-gray-100">
-      <button @click="switchAdminTab('pos')" :class="adminTab==='pos'?'text-rose-900 bg-rose-50 font-bold':'text-gray-400'" class="flex-1 py-2 rounded-lg text-xs">開單</button>
-      <button @click="switchAdminTab('schedule')" :class="adminTab==='schedule'?'text-rose-900 bg-rose-50 font-bold':'text-gray-400'" class="flex-1 py-2 rounded-lg text-xs">排程</button>
-      <button @click="switchAdminTab('orders')" :class="adminTab==='orders'?'text-rose-900 bg-rose-50 font-bold':'text-gray-400'" class="flex-1 py-2 rounded-lg text-xs">訂單</button>
-      <button @click="switchAdminTab('dashboard')" :class="adminTab==='dashboard'?'text-rose-900 bg-rose-50 font-bold':'text-gray-400'" class="flex-1 py-2 rounded-lg text-xs">戰情</button>
+      <button @click="adminTab='pos'" :class="adminTab==='pos'?'text-rose-900 bg-rose-50 font-bold':'text-gray-400'" class="flex-1 py-2 rounded-lg text-xs transition">開單</button>
+      <button @click="adminTab='schedule'" :class="adminTab==='schedule'?'text-rose-900 bg-rose-50 font-bold':'text-gray-400'" class="flex-1 py-2 rounded-lg text-xs transition">排程</button>
+      <button @click="adminTab='orders'" :class="adminTab==='orders'?'text-rose-900 bg-rose-50 font-bold':'text-gray-400'" class="flex-1 py-2 rounded-lg text-xs transition">訂單</button>
+      <button @click="adminTab='dashboard'" :class="adminTab==='dashboard'?'text-rose-900 bg-rose-50 font-bold':'text-gray-400'" class="flex-1 py-2 rounded-lg text-xs transition">戰情</button>
     </div>
 
     <div class="flex-1 overflow-y-auto p-4 space-y-6 pb-24">
       
-      <!-- POS -->
-      <div v-if="adminTab==='pos'">
+      <!-- Tab 1: POS / 開單 -->
+      <div v-if="adminTab==='pos'" class="space-y-4">
         <div class="bg-white p-5 rounded-3xl shadow-sm border border-rose-100 space-y-3">
-          <h3 class="font-bold text-rose-900 flex items-center mb-2"><i class="ri-add-circle-fill mr-2 text-rose-500"></i> 快速開單</h3>
+          <h3 class="font-bold text-rose-900 mb-2 flex items-center"><i class="ri-add-circle-fill mr-2 text-rose-500"></i> 快速開單</h3>
           <input v-model="adminForm.phone" placeholder="手機 (自動帶入會員)" @blur="checkMember" class="w-full p-3 bg-gray-50 rounded-xl outline-none text-sm">
           <div class="grid grid-cols-2 gap-2"><input v-model="adminForm.name" placeholder="姓名" class="p-3 bg-gray-50 rounded-xl outline-none text-sm"><select v-model="adminForm.paymentMethod" class="p-3 bg-gray-50 rounded-xl outline-none text-sm text-gray-500"><option value="現金">現金</option><option value="信用卡">信用卡</option></select></div>
           <select v-model="adminForm.serviceName" class="w-full p-3 bg-gray-50 rounded-xl outline-none text-sm text-gray-600" @change="autoFillPrice"><option value="" disabled>選擇服務</option><option v-for="s in services" :value="s.name">{{ s.name }} (${{s.price}})</option></select>
@@ -145,7 +211,7 @@
         </div>
       </div>
 
-      <!-- Schedule (Calendar) -->
+      <!-- Tab 2: Schedule / 排程 -->
       <div v-if="adminTab==='schedule'">
         <div class="flex justify-between items-center mb-4 bg-white p-2 rounded-xl shadow-sm">
           <button @click="changeScheduleDate(-1)" class="w-8 h-8 flex items-center justify-center text-gray-400"><i class="ri-arrow-left-s-line"></i></button>
@@ -153,7 +219,6 @@
             <span>{{ displayDate }}</span>
             <div class="flex gap-2 mt-1 text-[10px] text-gray-400">
               <button @click="schedMode='day'" :class="schedMode==='day'?'text-rose-500 font-bold':''">日</button> |
-              <button @click="schedMode='week'" :class="schedMode==='week'?'text-rose-500 font-bold':''">週</button> |
               <button @click="schedMode='month'" :class="schedMode==='month'?'text-rose-500 font-bold':''">月</button>
             </div>
           </div>
@@ -173,19 +238,7 @@
           </div>
         </div>
 
-        <!-- Week View -->
-        <div v-if="schedMode==='week'" class="bg-white p-4 rounded-2xl shadow-sm overflow-x-auto">
-           <div class="flex text-center min-w-[300px]">
-             <div v-for="(day, idx) in weekDays" :key="idx" class="flex-1 week-col" :class="isSelected(day.d)?'active':''">
-               <div class="text-[10px] text-gray-400">{{ day.w }}</div>
-               <div class="text-sm font-bold mb-2">{{ day.d }}</div>
-               <!-- 簡易點點顯示忙碌度 -->
-               <div v-if="getDayEventCount(day.full)>0" class="text-[10px] bg-rose-100 text-rose-500 rounded-full px-1">{{ getDayEventCount(day.full) }}</div>
-             </div>
-           </div>
-        </div>
-
-        <!-- Day View (Details) -->
+        <!-- Day View -->
         <div v-if="schedMode==='day'" class="space-y-2">
           <div v-if="daySlots.length===0" class="text-center py-10 text-gray-400 text-sm">讀取中...</div>
           <div v-for="s in daySlots" :key="s.time" class="flex gap-3 items-center">
@@ -198,27 +251,32 @@
         </div>
       </div>
 
-      <!-- Orders -->
+      <!-- Tab 3: Orders -->
       <div v-if="adminTab==='orders'" class="space-y-4">
-        <div v-for="ord in adminOrders" :key="ord.id" @click="selectedOrder=ord" class="bg-white p-5 rounded-2xl shadow-soft border border-rose-100/50 cursor-pointer">
+        <div v-for="ord in adminOrders" :key="ord.id" @click="openOrderDetail(ord)" class="bg-white p-5 rounded-2xl shadow-soft border border-rose-100/50 cursor-pointer">
           <div class="flex justify-between mb-2"><span class="text-[10px] bg-gray-100 px-2 py-0.5 rounded font-bold">{{ ord.status }}</span><span class="font-serif font-bold text-rose-900">${{ ord.final }}</span></div>
           <div class="font-serif font-bold text-lg text-rose-900 mb-1">{{ ord.name }}</div>
           <div class="text-xs text-gray-400 font-sans">{{ ord.date }} {{ ord.time }} · {{ ord.service }}</div>
         </div>
       </div>
 
-      <!-- Dashboard -->
+      <!-- Tab 4: Dashboard -->
       <div v-if="adminTab==='dashboard'">
-        <div class="bg-rose-900 text-cream p-6 rounded-3xl shadow-xl"><p class="text-xs opacity-50 uppercase">今日營收</p><h2 class="text-5xl font-serif font-bold mt-2">${{ stats.revenue.toLocaleString() }}</h2><div class="mt-4 flex gap-4 text-xs opacity-60"><span>{{ stats.todayCount }} 筆</span><span>{{ stats.pending }} 待處理</span></div></div>
+        <div class="bg-rose-900 text-cream p-6 rounded-3xl relative overflow-hidden shadow-xl mb-6">
+          <p class="text-xs font-bold opacity-50 uppercase tracking-widest">今日營收</p>
+          <h2 class="text-5xl font-serif font-bold mt-2">${{ stats.revenue.toLocaleString() }}</h2>
+          <div class="mt-4 flex gap-4 text-xs opacity-60"><span><i class="ri-bill-line"></i> {{ stats.todayCount }} 筆</span><span><i class="ri-time-line"></i> {{ stats.pending }} 待處理</span></div>
+        </div>
       </div>
+
     </div>
   </div>
 
-  <!-- Login -->
+  <!-- Login Modal -->
   <div v-if="view === 'login'" class="fixed inset-0 z-[70] bg-[#4a4a4a]/95 backdrop-blur-md flex flex-col items-center justify-center p-8">
      <h2 class="font-serif font-bold text-2xl text-cream mb-8">店長後台</h2>
      <input v-model="pwd" type="password" placeholder="密碼" class="text-center text-3xl tracking-[0.3em] font-bold border-b-2 border-white/20 p-2 outline-none focus:border-rose-400 mb-8 w-full bg-transparent text-white placeholder-white/20">
-     <button @click="doLogin" class="w-full bg-rose-500 text-white py-4 rounded-2xl font-bold"><span v-if="loading">...</span><span v-else>登入</span></button>
+     <button @click="doLogin" :disabled="loading" class="w-full bg-rose-500 text-white py-4 rounded-2xl font-bold flex justify-center gap-2"><span v-if="loading"><i class="ri-loader-4-line animate-spin"></i></span><span v-else>登入</span></button>
      <p v-if="loginError" class="text-red-300 text-xs mt-4">{{ loginError }}</p>
      <button @click="view='home'" class="mt-8 text-white/40 text-xs font-bold tracking-widest">返回</button>
   </div>
@@ -257,79 +315,144 @@
       const loginError = ref(''); const todayStr = new Date().toISOString().split('T')[0];
       const lookupPhone = ref(''); const myOrders = ref([]); const lookupSearched = ref(false);
       
-      // Admin
+      // Admin Vars
       const adminTab = ref('dashboard'); 
       const selectedOrder = ref(null);
       const adminForm = reactive({ phone:'', name:'', serviceName:'', date:todayStr, time:'', price:0, paymentMethod:'現金' });
-      
-      // Calendar Logic
-      const schedMode = ref('day'); // day, week, month
-      const schedDate = ref(new Date()); // current focused date object
-      const monthBookings = ref([]); // all bookings for current month
-      const daySlots = ref([]); // slots for day view
+      const schedMode = ref('day');
+      const schedDate = ref(new Date());
+      const monthBookings = ref([]);
+      const daySlots = ref([]);
 
+      // API Helper
       const callApi = async (action, params = {}, method = 'GET') => {
         let url = `${API_URL}${API_URL.includes('?')?'&':'?'}action=${action}`;
         let opt = { method };
-        if (method === 'GET') { const qs = new URLSearchParams(params).toString(); if(qs) url += `&${qs}`; } 
-        else { opt.body = JSON.stringify({ ...params, action }); opt.headers = { 'Content-Type': 'text/plain;charset=utf-8' }; }
-        const res = await fetch(url, opt); return await res.json();
+        if (method === 'GET') {
+          const qs = new URLSearchParams(params).toString();
+          if(qs) url += `&${qs}`;
+        } else {
+          opt.body = JSON.stringify({ ...params, action });
+          opt.headers = { 'Content-Type': 'text/plain;charset=utf-8' }; 
+        }
+        const res = await fetch(url, opt);
+        return await res.json();
       };
 
       const handleImgError = (e) => { e.target.src = "https://images.unsplash.com/photo-1560750588-73207b1ef5b8?w=300"; };
 
       onMounted(async () => {
-        const res = await callApi('init');
-        config.value = res.config; services.value = res.services; options.value = res.options;
-        if(services.value.length) activeCat.value = services.value[0].category;
+        try {
+          const res = await callApi('init');
+          config.value = res.config; services.value = res.services; options.value = res.options;
+          if(services.value.length) activeCat.value = services.value[0].category;
+        } catch(e) { console.error("Init failed", e); }
       });
 
       const categories = computed(() => [...new Set(services.value.map(s => s.category))]);
       const filteredServices = computed(() => services.value.filter(s => s.category === activeCat.value));
-      const isOpenNow = computed(() => { if(!config.value.WorkHours) return false; const h = new Date().getHours(); const p=config.value.WorkHours.split(','); return h>=Number(p[0]) && h<Number(p[1]); });
+      const isOpenNow = computed(() => { 
+         if(!config.value.WorkHours) return false;
+         const h = new Date().getHours(); const p=config.value.WorkHours.split(',');
+         return h>=Number(p[0]) && h<Number(p[1]);
+      });
 
+      // User Logic
       const openBooking = (svc) => { Object.assign(form, {serviceName:svc.name, price:svc.price, svcImage:svc.image, date:'', time:''}); showBooking.value=true; };
-      const fetchSlots = async () => { if(!form.date) return; loadingSlots.value=true; slots.value=[]; const res = await callApi('slots', {date:form.date}); slots.value = res.slots; slotsStatus.value = res.status; loadingSlots.value=false; };
-      const submitOrder = async () => { if(!form.time) return alert('請填寫完整'); loading.value=true; const res = await callApi('book', JSON.parse(JSON.stringify(form)), 'POST'); loading.value=false; if(res.status==='success') { successData.value=res.data; showBooking.value=false; view.value='success'; } else alert(res.msg); };
-      const doLookup = async () => { if(!lookupPhone.value) return; loading.value=true; myOrders.value=[]; lookupSearched.value=false; const res = await callApi('lookup', {phone:lookupPhone.value}); loading.value=false; myOrders.value=res.orders; lookupSearched.value=true; };
+      const fetchSlots = async () => {
+        if(!form.date) return; loadingSlots.value=true; slots.value=[];
+        const res = await callApi('slots', {date:form.date});
+        slots.value = res.slots; slotsStatus.value = res.status; loadingSlots.value=false;
+      };
+      const submitOrder = async () => {
+        if(!form.time) return alert('請填寫完整'); loading.value=true;
+        const res = await callApi('book', JSON.parse(JSON.stringify(form)), 'POST');
+        loading.value=false;
+        if(res.status==='success') { successData.value=res.data; showBooking.value=false; view.value='success'; }
+        else alert(res.msg);
+      };
+      const doLookup = async () => {
+        if(!lookupPhone.value) return; loading.value=true; myOrders.value=[]; lookupSearched.value=false;
+        const res = await callApi('lookup', {phone:lookupPhone.value});
+        loading.value=false; myOrders.value=res.orders; lookupSearched.value=true;
+      };
 
-      const doLogin = async () => { loading.value=true; loginError.value=''; const res = await callApi('login', {pwd:pwd.value}); loading.value=false; if(res.status==='success') { adminOrders.value=res.orders; stats.value=res.stats; view.value='admin'; loadMonthSchedule(); } else { loginError.value=res.msg; pwd.value=''; } };
+      // Admin Logic
+      const doLogin = async () => {
+        loading.value=true; loginError.value='';
+        const res = await callApi('login', {pwd:pwd.value});
+        loading.value=false;
+        if(res.status==='success') { adminOrders.value=res.orders; stats.value=res.stats; view.value='admin'; loadMonthSchedule(); }
+        else { loginError.value=res.msg; pwd.value=''; }
+      };
       const logout = () => { pwd.value=''; view.value='home'; };
       
-      const updateOrder = async (ord, s) => { if(!confirm('確認變更?')) return; ord.status = s; selectedOrder.value=null; await callApi('updateStatus', {row:ord.rowIndex, status:s}, 'POST'); };
-      const checkMember = async () => {}; 
-      const autoFillPrice = () => { const s = services.value.find(i => i.name === adminForm.serviceName); if(s) adminForm.price = s.price; };
-      const submitAdminOrder = async (status) => { if(!adminForm.phone || !adminForm.serviceName) return alert('資料不全'); loading.value=true; const payload = { ...adminForm, status: status, isAdminForce: true, action: 'adminBook' }; const res = await callApi('adminBook', payload, 'POST'); loading.value=false; if(res.status==='success') { alert('成功'); doLogin(); } else alert('失敗'); };
+      const openOrderDetail = (ord) => { selectedOrder.value = ord; };
+      const updateOrder = async (ord, s) => {
+        if(!confirm('確認變更?')) return;
+        ord.status = s; selectedOrder.value=null;
+        await callApi('updateStatus', {row:ord.rowIndex, status:s}, 'POST');
+      };
 
-      // Schedule Helpers
+      const checkMember = async () => { /* 這裡可保留搜尋會員邏輯 */ };
+      const autoFillPrice = () => {
+        const s = services.value.find(i => i.name === adminForm.serviceName);
+        if(s) adminForm.price = s.price;
+      };
+      const submitAdminOrder = async (status) => {
+        if(!adminForm.phone || !adminForm.serviceName) return alert('請填寫手機與服務');
+        if(status === '已確認' && (!adminForm.date || !adminForm.time)) return alert('預約需填寫日期時間');
+        
+        loading.value = true;
+        // 使用特殊的 action: adminBook
+        const payload = { ...adminForm, status: status, isAdminForce: true, action: 'adminBook' };
+        const res = await callApi('adminBook', payload, 'POST'); // 注意這裡要傳到 doPost
+        loading.value = false;
+        
+        if(res.status === 'success') {
+          alert(status === '已完成' ? '結帳完成' : '預約建立成功');
+          // 重新整理訂單列表
+          doLogin();
+        } else {
+          alert('失敗: ' + res.msg);
+        }
+      };
+
+      // Admin Schedule Logic
       const switchAdminTab = (tab) => { adminTab.value=tab; if(tab==='schedule') loadMonthSchedule(); };
       const loadMonthSchedule = async () => {
         const y = schedDate.value.getFullYear();
         const m = schedDate.value.getMonth() + 1;
         const res = await callApi('schedule', {year:y, month:m});
-        if(res.status==='success') monthBookings.value = res.bookings;
+        if(res.status === 'success') {
+          monthBookings.value = res.bookings || [];
+        }
         refreshDayView();
       };
+      
       const changeScheduleDate = (dir) => {
         const d = new Date(schedDate.value);
         if(schedMode.value==='month') d.setMonth(d.getMonth() + dir);
-        else d.setDate(d.getDate() + (schedMode.value==='week'?dir*7:dir));
+        else d.setDate(d.getDate() + dir); // Day/Week move by 1 day for simplicity or change logic if needed
         schedDate.value = d;
-        if(schedMode.value==='month' || dir!==0) loadMonthSchedule(); // Refresh if month changes
+        loadMonthSchedule(); 
       };
       
       const refreshDayView = async () => {
         const dateStr = schedDate.value.toISOString().split('T')[0];
-        // 取得當天空檔
         const res = await callApi('slots', {date:dateStr});
         const allSlots = res.slots || [];
-        // 結合已預約資料
         daySlots.value = allSlots.map(s => {
           const booked = monthBookings.value.find(b => b.date === dateStr && b.time === s.time);
           return { time: s.time, booked: !!booked, info: booked };
         });
       };
       
+      const getBookedInfo = (time) => {
+        const found = monthBookings.value.find(b => b.time === time); // Need to filter by date in real logic
+        return found ? `${found.name}` : null;
+      };
+
       // Computed Calendar
       const displayDate = computed(() => {
         const y = schedDate.value.getFullYear();
@@ -351,21 +474,8 @@
         schedMode.value = 'day';
         refreshDayView();
       };
-      
-      const weekDays = computed(() => {
-        const curr = new Date(schedDate.value);
-        const first = curr.getDate() - curr.getDay(); // Sunday
-        const days = [];
-        for(let i=0; i<7; i++) {
-          const next = new Date(curr);
-          next.setDate(first + i);
-          const y = next.getFullYear(), m=String(next.getMonth()+1).padStart(2,'0'), d=String(next.getDate()).padStart(2,'0');
-          days.push({ w:['日','一','二','三','四','五','六'][i], d:next.getDate(), full:`${y}-${m}-${d}` });
-        }
-        return days;
-      });
-      const getDayEventCount = (dateStr) => monthBookings.value.filter(b => b.date === dateStr).length;
 
+      watch(adminTab, (newVal) => { if(newVal === 'schedule') loadMonthSchedule(); });
       watch(schedMode, () => { if(schedMode.value==='day') refreshDayView(); });
 
       return { 
@@ -373,10 +483,10 @@
         form, slots, loading, loadingSlots, slotsStatus, todayStr, successData, 
         lookupPhone, myOrders, lookupSearched, 
         pwd, adminOrders, stats, loginError, 
-        adminTab, selectedOrder, adminForm, 
-        schedMode, schedDate, displayDate, monthDays, monthBlanks, isToday, isSelected, hasEvent, selectDateFromCal, weekDays, getDayEventCount, daySlots, changeScheduleDate, switchAdminTab,
+        adminTab, selectedOrder, adminForm, scheduleMode: schedMode, scheduleDate: schedDate, scheduleSlots: daySlots,
         handleImgError, openBooking, fetchSlots, submitOrder, doLookup, doLogin, logout, 
-        openOrderDetail, updateOrder, checkMember, autoFillPrice, submitAdminOrder 
+        openOrderDetail, updateOrder, checkMember, autoFillPrice, submitAdminOrder, loadMonthSchedule, 
+        displayDate, monthDays, monthBlanks, isToday, isSelected, hasEvent, selectDateFromCal, changeScheduleDate, switchAdminTab, daySlots
       };
     }
   }).mount('#app');
