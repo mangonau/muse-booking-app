@@ -8,15 +8,11 @@
   <!-- 1. 錯誤偵測器 -->
   <script>
     window.onerror = function(msg, url, line) {
-      if (msg.includes("ResizeObserver")) return; // 忽略無害警告
+      if (msg.includes("ResizeObserver")) return;
       const errBox = document.getElementById('error-box');
       if (errBox) {
         errBox.style.display = 'block';
         errBox.innerHTML += `<p>❌ ${msg} (Line: ${line})</p>`;
-      }
-      // 如果是 Script error，通常是 CORS 或網址錯誤
-      if (msg.toLowerCase().includes('script error')) {
-        alert("⚠️ 連線被拒絕！\n請檢查 Google Apps Script 部署權限是否為「所有人 (Anyone)」");
       }
       return false;
     };
@@ -32,7 +28,7 @@
     // ============================================================================
     // ★★★ 您的專屬 API 網址 (已填入) ★★★
     // ============================================================================
-    const API_URL = "https://script.google.com/macros/s/AKfycbyjebhcn4sKnYgA_4QyOHbO33PfQOrfTG_fA5ICV2bAFTtFp1LhMuQ1waWxO5tkUQVI/exec?format=json";
+    const API_URL = "https://script.google.com/macros/s/AKfycbxH6eemUR6zPVB3h4_-ToMYu0FESqzFtnTxDwIQ3k-UdeHu-uPhg8UjUySq0ESSRRo/exec?format=json";
   </script>
 
   <script>
@@ -89,7 +85,7 @@
 <div id="loading-overlay" v-if="initLoading">
   <div class="animate-spin text-4xl text-rose-500 mb-4"><i class="ri-loader-4-line"></i></div>
   <p class="text-rose-900 font-bold">MUSE 系統連線中...</p>
-  <p class="text-xs text-gray-400 mt-2">若停留超過 10 秒，請檢查部署權限</p>
+  <p class="text-xs text-gray-400 mt-2">Loading...</p>
 </div>
 
 <div id="app" class="max-w-[480px] mx-auto min-h-screen bg-cream shadow-2xl relative flex flex-col overflow-hidden" v-show="!initLoading">
@@ -159,7 +155,7 @@
 
         <div class="space-y-6">
            <div>
-             <label class="block text-xs font-bold text-rose-400 uppercase tracking-widest mb-3">選擇日期</label>
+             <label class="block text-xs font-bold text-rose-400 uppercase tracking-widest mb-3">預約日期</label>
              <input type="date" v-model="form.date" @change="fetchSlots" :min="todayStr" class="w-full p-4 rounded-2xl font-bold text-rose-900 shadow-sm border border-gray-100 focus:ring-2 focus:ring-rose-200 outline-none">
            </div>
 
@@ -418,7 +414,7 @@
   const { createApp, reactive, ref, computed, onMounted, watch } = Vue;
   createApp({
     setup() {
-      const initLoading = ref(true); // 全局 Loading
+      const initLoading = ref(true); 
       const view = ref('home'); const showBooking = ref(false); const showLookup = ref(false);
       const config = ref({}); const services = ref([]); const options = ref({}); const activeCat = ref('');
       const loading = ref(false); const slots = ref([]); const loadingSlots = ref(false); const slotsStatus=ref('');
