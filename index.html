@@ -5,26 +5,33 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>MUSE Artistry</title>
   
-  <!-- 錯誤監聽 -->
+  <!-- 1. 錯誤偵測器 -->
   <script>
     window.onerror = function(msg, url, line) {
+      if (msg.includes("ResizeObserver")) return; // 忽略無害警告
       const errBox = document.getElementById('error-box');
       if (errBox) {
         errBox.style.display = 'block';
         errBox.innerHTML += `<p>❌ ${msg} (Line: ${line})</p>`;
       }
-      return false; // 讓錯誤繼續拋出以便在 Console 看到
+      // 如果是 Script error，通常是 CORS 或網址錯誤
+      if (msg.toLowerCase().includes('script error')) {
+        alert("⚠️ 連線被拒絕！\n請檢查 Google Apps Script 部署權限是否為「所有人 (Anyone)」");
+      }
+      return false;
     };
   </script>
 
+  <!-- 2. 核心套件 -->
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Noto+Serif+TC:wght@400;600&family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
   
   <script>
-    // ★★★ 請確認網址結尾是 /exec?format=json ★★★
-    // 您的網址：
+    // ============================================================================
+    // ★★★ 您的專屬 API 網址 (已填入) ★★★
+    // ============================================================================
     const API_URL = "https://script.google.com/macros/s/AKfycbyjebhcn4sKnYgA_4QyOHbO33PfQOrfTG_fA5ICV2bAFTtFp1LhMuQ1waWxO5tkUQVI/exec?format=json";
   </script>
 
@@ -33,7 +40,7 @@
       theme: {
         extend: {
           colors: { rose: { 400: '#C5A087', 500: '#B68D8D', 900: '#4A4A4A' }, cream: '#FDFBF7', sage: '#A3B18A', gold: '#D4AF37' },
-          fontFamily: { serif: ['"Noto Serif TC"', 'serif'], sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
+          fontFamily: { serif: ['"Noto Serif TC"', '"Cinzel"', 'serif'], sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
           borderRadius: { '3xl': '32px' },
           boxShadow: { 'soft': '0 10px 40px -10px rgba(182, 141, 141, 0.15)' }
         }
@@ -47,15 +54,25 @@
     .slide-up-enter-from, .slide-up-leave-to { transform: translateY(100%); }
     .fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
     .fade-enter-from, .fade-leave-to { opacity: 0; }
-    input[type="date"] { background: white; padding: 12px; border-radius: 12px; border: 1px solid #e5e7eb; width: 100%; min-height: 48px; color: #1a1a1a; }
-    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center; }
-    .cal-cell { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px; position: relative; font-size: 13px; font-weight: 500; }
-    .cal-cell.today { border: 1px solid #B68D8D; color: #B68D8D; }
-    .cal-cell.selected { background-color: #B68D8D; color: white; }
-    .cal-cell.off-day { background-color: #f3f4f6; color: #d1d5db; pointer-events: none; }
-    .cal-dot { width: 5px; height: 5px; background-color: #F43F5E; border-radius: 50%; margin-top: 4px; }
     
-    /* 診斷區塊樣式 */
+    /* 日期輸入框強制樣式 */
+    input[type="date"] { background-color: #ffffff; color: #1a1a1a; padding: 14px; border-radius: 16px; border: 1px solid #e5e7eb; width: 100%; min-height: 52px; font-size: 16px; appearance: none; -webkit-appearance: none; }
+    
+    /* 月曆視覺增強 */
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center; }
+    .cal-cell { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px; position: relative; font-size: 13px; font-weight: 500; transition: background 0.2s; }
+    .cal-cell.today { border: 2px solid #B68D8D; color: #B68D8D; font-weight: 700; }
+    .cal-cell.selected { background-color: #B68D8D; color: white; }
+    .cal-cell.off-day { background-color: #F3F4F6; color: #D1D5DB; pointer-events: none; } 
+    .cal-dot { width: 6px; height: 6px; background-color: #E11D48; border-radius: 50%; margin-top: 4px; box-shadow: 0 2px 4px rgba(225, 29, 72, 0.3); } 
+    
+    /* 日檢視卡片 */
+    .schedule-card { background-color: #1F2937; color: white; border-left: 4px solid #F43F5E; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    
+    /* 票券樣式 */
+    .ticket-card { border-left: 4px solid #1a1a1a; }
+
+    /* 診斷區塊 */
     #error-box { display: none; position: fixed; top: 0; left: 0; width: 100%; background: #fee2e2; color: #b91c1c; padding: 20px; z-index: 9999; font-size: 12px; border-bottom: 2px solid #ef4444; }
     #loading-overlay { position: fixed; inset: 0; background: #FDFBF7; z-index: 9998; display: flex; flex-direction: column; justify-content: center; align-items: center; }
   </style>
@@ -68,18 +85,24 @@
   <p>請截圖此畫面給工程師：</p>
 </div>
 
-<!-- 載入中畫面 (如果這裡一直顯示，代表 API 連線失敗) -->
+<!-- 全局載入畫面 -->
 <div id="loading-overlay" v-if="initLoading">
   <div class="animate-spin text-4xl text-rose-500 mb-4"><i class="ri-loader-4-line"></i></div>
-  <p class="text-rose-900 font-bold">正在連線伺服器...</p>
-  <p class="text-xs text-gray-400 mt-2">若停留過久，請檢查 API 網址</p>
+  <p class="text-rose-900 font-bold">MUSE 系統連線中...</p>
+  <p class="text-xs text-gray-400 mt-2">若停留超過 10 秒，請檢查部署權限</p>
 </div>
 
 <div id="app" class="max-w-[480px] mx-auto min-h-screen bg-cream shadow-2xl relative flex flex-col overflow-hidden" v-show="!initLoading">
 
-  <!-- ================= 1. Home ================= -->
+  <!-- ================= 1. 首頁 (Home) ================= -->
   <div v-show="view === 'home'" class="flex-1 overflow-y-auto hide-scroll pb-24 relative">
-    <button @click="showLookup = true" class="absolute top-6 right-6 z-30 w-10 h-10 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/30 shadow-lg active:scale-95 transition"><i class="ri-coupon-3-line text-lg"></i></button>
+    
+    <!-- 查單按鈕 -->
+    <button @click="showLookup = true" class="absolute top-6 right-6 z-30 w-10 h-10 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/30 shadow-lg active:scale-95 transition">
+      <i class="ri-coupon-3-line text-lg"></i>
+    </button>
+
+    <!-- Hero Image -->
     <div class="relative h-[360px]">
       <img :src="config.ShopImage" @error="handleImgError" class="w-full h-full object-cover">
       <div class="absolute inset-0 bg-gradient-to-t from-[#4a4a4a]/70 to-transparent"></div>
@@ -91,9 +114,19 @@
         </div>
       </div>
     </div>
+
+    <!-- 導航列 -->
     <div class="px-6 -mt-6 relative z-10 space-y-4">
-      <a :href="config.MapUrl" target="_blank" class="bg-white/90 backdrop-blur-md w-full py-4 rounded-2xl flex items-center justify-between px-6 shadow-soft hover:bg-white transition"><div class="flex items-center gap-4"><div class="w-12 h-12 rounded-full bg-cream flex items-center justify-center text-2xl text-rose-500"><i class="ri-map-pin-2-fill"></i></div><div><div class="text-[10px] text-rose-400 font-bold uppercase tracking-widest">門店地址</div><div class="text-sm font-bold text-rose-900 line-clamp-1">{{ config.Address }}</div></div></div><i class="ri-arrow-right-line text-rose-300"></i></a>
+      <a :href="config.MapUrl" target="_blank" class="bg-white/90 backdrop-blur-md w-full py-4 rounded-2xl flex items-center justify-between px-6 shadow-soft hover:bg-white transition">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 rounded-full bg-cream flex items-center justify-center text-2xl text-rose-500"><i class="ri-map-pin-2-fill"></i></div>
+          <div><div class="text-[10px] text-rose-400 font-bold uppercase tracking-widest">門店地址</div><div class="text-sm font-bold text-rose-900 line-clamp-1">{{ config.Address }}</div></div>
+        </div>
+        <i class="ri-arrow-right-line text-rose-300"></i>
+      </a>
     </div>
+
+    <!-- 服務列表 -->
     <div class="px-6 mt-8 pb-10">
       <div class="flex gap-6 overflow-x-auto hide-scroll pb-2 mb-4 border-b border-rose-100/50">
         <button v-for="cat in categories" :key="cat" @click="activeCat = cat" :class="['text-sm font-serif font-bold px-1 py-2 transition whitespace-nowrap', activeCat === cat ? 'text-rose-900 border-b-2 border-rose-500' : 'text-gray-300']">{{ cat }}</button>
@@ -109,33 +142,46 @@
         </div>
       </div>
     </div>
+    
+    <!-- Admin Lock -->
     <div class="py-6 flex justify-center"><button @click="view = 'login'" class="text-rose-100 hover:text-rose-300 p-4"><i class="ri-lock-2-line"></i></button></div>
   </div>
 
-  <!-- Booking Sheet -->
+  <!-- ================= 2. 預約表單 (Booking Sheet) ================= -->
   <transition name="slide-up">
     <div v-if="showBooking" class="fixed inset-0 z-50 flex flex-col justify-end">
       <div class="absolute inset-0 bg-[#4a4a4a]/60 backdrop-blur-sm" @click="showBooking=false"></div>
+      
       <div class="bg-cream w-full rounded-t-[40px] p-8 max-h-[90vh] overflow-y-auto relative z-10 shadow-2xl">
         <button @click="showBooking=false" class="absolute top-6 right-6 w-10 h-10 bg-white rounded-full shadow-sm flex items-center justify-center text-rose-900"><i class="ri-close-line text-xl"></i></button>
+
         <div class="flex gap-5 mb-8 items-center"><img :src="form.svcImage" @error="handleImgError" class="w-20 h-20 rounded-2xl object-cover shadow-md"><div><h2 class="text-2xl font-serif font-bold text-rose-900">{{ form.serviceName }}</h2><p class="text-gray-400 font-sans text-sm mt-1">${{ form.price }} · {{ form.duration }} 分鐘</p></div></div>
+
         <div class="space-y-6">
            <div>
-             <label class="block text-xs font-bold text-rose-400 uppercase tracking-widest mb-3">預約日期</label>
+             <label class="block text-xs font-bold text-rose-400 uppercase tracking-widest mb-3">選擇日期</label>
              <input type="date" v-model="form.date" @change="fetchSlots" :min="todayStr" class="w-full p-4 rounded-2xl font-bold text-rose-900 shadow-sm border border-gray-100 focus:ring-2 focus:ring-rose-200 outline-none">
            </div>
+
            <div v-if="form.date" class="animate-fade">
              <label class="block text-xs font-bold text-rose-400 uppercase tracking-widest mb-3">選擇時段</label>
              <div v-if="loadingSlots" class="py-4 text-center"><i class="ri-loader-4-line animate-spin text-rose-400 text-2xl"></i></div>
              <div v-else-if="slotsStatus==='closed'" class="py-4 text-center bg-white rounded-2xl text-gray-400 text-sm">本日公休</div>
              <div v-else-if="slots.length>0" class="grid grid-cols-4 gap-2">
-               <button v-for="s in slots" :key="s.time" @click="s.available ? form.time=s.time : null" :disabled="!s.available" :class="form.time===s.time ? 'bg-rose-500 text-white shadow-lg' : (s.available ? 'bg-white text-rose-900 border hover:border-rose-300' : 'bg-gray-100 text-gray-300')" class="py-3 rounded-xl text-sm font-bold transition relative font-sans">{{ s.time }}</button>
+               <button v-for="s in slots" :key="s.time" @click="s.available ? form.time=s.time : null" :disabled="!s.available"
+                 :class="form.time===s.time ? 'bg-rose-500 text-white shadow-lg' : (s.available ? 'bg-white text-rose-900 border hover:border-rose-300' : 'bg-gray-100 text-gray-300')"
+                 class="py-3 rounded-xl text-sm font-bold transition relative font-sans">{{ s.time }}</button>
              </div>
              <div v-else class="py-4 text-center bg-white rounded-2xl text-red-300 text-sm">本日已額滿</div>
            </div>
+           
            <div v-else class="p-4 border-2 border-dashed border-rose-200 rounded-2xl text-center text-rose-400 text-sm font-sans bg-white/50">👆 請先點擊上方選擇預約日期</div>
+
            <div v-if="form.time" class="space-y-4 animate-fade">
-             <div class="grid grid-cols-2 gap-3"><input v-model="form.name" placeholder="您的姓名" class="p-4 bg-white rounded-2xl outline-none font-sans shadow-sm"><input v-model="form.phone" type="tel" placeholder="手機號碼" class="p-4 bg-white rounded-2xl outline-none font-sans shadow-sm"></div>
+             <div class="grid grid-cols-2 gap-3">
+               <input v-model="form.name" placeholder="您的姓名" class="p-4 bg-white rounded-2xl outline-none font-sans shadow-sm">
+               <input v-model="form.phone" type="tel" placeholder="手機號碼" class="p-4 bg-white rounded-2xl outline-none font-sans shadow-sm">
+             </div>
              <button @click="submitOrder" :disabled="loading" class="w-full bg-rose-500 text-white py-5 rounded-2xl font-serif font-bold text-lg shadow-lg mt-4 flex justify-center items-center gap-2"><span v-if="loading"><i class="ri-loader-4-line animate-spin"></i></span><span v-else>確認預約</span></button>
            </div>
         </div><div class="h-10"></div>
@@ -143,37 +189,226 @@
     </div>
   </transition>
 
-  <!-- Lookup -->
+  <!-- ================= 3. 顧客查單 (Lookup) ================= -->
   <transition name="slide-up">
     <div v-if="showLookup" class="fixed inset-0 z-50 flex flex-col justify-end">
       <div class="absolute inset-0 bg-[#4a4a4a]/60 backdrop-blur-sm" @click="showLookup=false"></div>
       <div class="bg-cream w-full rounded-t-[40px] p-8 max-h-[85vh] overflow-y-auto relative z-10">
         <button @click="showLookup=false" class="absolute top-6 right-6 w-10 h-10 bg-white rounded-full shadow-sm flex items-center justify-center text-rose-900"><i class="ri-close-line text-xl"></i></button>
         <h2 class="text-2xl font-serif font-bold text-rose-900 mb-6">我的預約</h2>
-        <div class="flex gap-3 mb-8"><input v-model="lookupPhone" type="tel" placeholder="輸入手機號碼查詢" class="flex-1 p-4 bg-white rounded-2xl outline-none font-sans font-bold shadow-sm text-rose-900"><button @click="doLookup" class="bg-rose-900 text-white w-16 rounded-2xl font-bold shadow-lg flex items-center justify-center"><i v-if="loading" class="ri-loader-4-line animate-spin"></i><i v-else class="ri-search-line text-xl"></i></button></div>
-        <div v-if="myOrders.length > 0" class="space-y-4"><div v-for="o in myOrders" :key="o.id" class="bg-white p-5 rounded-2xl shadow-soft flex justify-between items-center relative overflow-hidden"><div class="w-1.5 h-full bg-rose-400 absolute left-0 top-0"></div><div><div class="flex items-center gap-2 mb-1"><span class="text-[10px] font-bold text-gray-400 tracking-wider">#{{ o.id }}</span><span class="text-[10px] bg-rose-50 text-rose-500 px-2 py-0.5 rounded-full font-bold">{{ o.status }}</span></div><h3 class="font-serif font-bold text-rose-900">{{ o.service }}</h3><p class="text-xs text-gray-400 mt-0.5">{{ o.date }} · {{ o.time }}</p></div><div class="text-right"><span class="block text-lg font-serif font-bold text-rose-900">${{ o.final }}</span></div></div></div>
+        <div class="flex gap-3 mb-8">
+          <input v-model="lookupPhone" type="tel" placeholder="輸入手機號碼查詢" class="flex-1 p-4 bg-white rounded-2xl outline-none font-sans font-bold shadow-sm text-rose-900">
+          <button @click="doLookup" class="bg-rose-900 text-white w-16 rounded-2xl font-bold shadow-lg flex items-center justify-center"><i v-if="loading" class="ri-loader-4-line animate-spin"></i><i v-else class="ri-search-line text-xl"></i></button>
+        </div>
+        <div v-if="myOrders.length > 0" class="space-y-4">
+          <div v-for="o in myOrders" :key="o.id" class="bg-white p-5 rounded-2xl shadow-soft flex justify-between items-center relative overflow-hidden">
+             <div class="w-1.5 h-full bg-rose-400 absolute left-0 top-0"></div>
+             <div><div class="flex items-center gap-2 mb-1"><span class="text-[10px] font-bold text-gray-400 tracking-wider">#{{ o.id }}</span><span class="text-[10px] bg-rose-50 text-rose-500 px-2 py-0.5 rounded-full font-bold">{{ o.status }}</span></div><h3 class="font-serif font-bold text-rose-900">{{ o.service }}</h3><p class="text-xs text-gray-400 mt-0.5">{{ o.date }} · {{ o.time }}</p></div>
+             <div class="text-right"><span class="block text-lg font-serif font-bold text-rose-900">${{ o.final }}</span></div>
+          </div>
+        </div>
         <div v-else-if="lookupSearched" class="text-center py-10 text-gray-400 font-serif italic">查無預約資料</div><div class="h-10"></div>
       </div>
     </div>
   </transition>
 
-  <!-- Admin Login & Dashboard -->
+  <!-- ================= 4. 後台管理 (Admin) ================= -->
+  <div v-if="view === 'admin'" class="fixed inset-0 z-50 bg-cream overflow-y-auto flex flex-col">
+    <!-- Header -->
+    <div class="bg-white px-6 py-4 flex justify-between items-center shadow-sm sticky top-0 z-20">
+      <h2 class="font-serif font-bold text-xl text-rose-900">店長後台</h2>
+      <button @click="logout" class="text-xs bg-gray-100 text-gray-500 px-3 py-1.5 rounded-lg font-bold">登出</button>
+    </div>
+    
+    <!-- Admin Tabs -->
+    <div class="flex p-2 bg-white border-b border-gray-100 overflow-x-auto">
+      <button v-for="t in ['pos','schedule','orders','dashboard','members']" :key="t" @click="switchAdminTab(t)" :class="adminTab===t?'text-rose-900 bg-rose-50 font-bold':'text-gray-400'" class="flex-1 py-2 px-3 rounded-lg text-xs capitalize whitespace-nowrap">{{ t==='pos'?'開單':t==='schedule'?'排程':t==='orders'?'訂單':t==='members'?'會員':'戰情' }}</button>
+    </div>
+
+    <div class="flex-1 overflow-y-auto p-4 space-y-6 pb-24">
+      
+      <!-- Tab 1: POS / 開單 -->
+      <div v-if="adminTab==='pos'" class="space-y-4">
+        <div class="bg-white p-5 rounded-3xl shadow-sm border border-rose-100 space-y-3">
+          <h3 class="font-bold text-rose-900 mb-2 flex items-center"><i class="ri-add-circle-fill mr-2 text-rose-500"></i> 快速開單</h3>
+          <div class="relative">
+            <input v-model="adminForm.phone" placeholder="手機 (自動帶入會員)" @blur="checkMember" class="w-full p-3 bg-gray-50 rounded-xl outline-none text-sm">
+            <i class="ri-search-line absolute right-3 top-3 text-gray-400"></i>
+          </div>
+          <div class="grid grid-cols-2 gap-2"><input v-model="adminForm.name" placeholder="姓名" class="p-3 bg-gray-50 rounded-xl outline-none text-sm"><select v-model="adminForm.paymentMethod" class="p-3 bg-gray-50 rounded-xl outline-none text-sm text-gray-500"><option value="現金">現金</option><option value="信用卡">信用卡</option></select></div>
+          <select v-model="adminForm.serviceName" class="w-full p-3 bg-gray-50 rounded-xl outline-none text-sm text-gray-600" @change="autoFillPrice"><option value="" disabled>選擇服務</option><option v-for="s in services" :value="s.name">{{ s.name }} (${{s.price}})</option></select>
+          <div class="grid grid-cols-2 gap-2"><input type="date" v-model="adminForm.date" class="p-3 bg-gray-50 rounded-xl outline-none text-sm"><input v-model="adminForm.time" placeholder="14:00" class="p-3 bg-gray-50 rounded-xl outline-none text-sm"></div>
+          <div class="grid grid-cols-2 gap-3 mt-2"><button @click="submitAdminOrder('已確認')" class="bg-rose-100 text-rose-900 py-3 rounded-xl font-bold text-sm">僅預約</button><button @click="submitAdminOrder('已完成')" class="bg-rose-900 text-white py-3 rounded-xl font-bold text-sm shadow-lg">直接結帳</button></div>
+        </div>
+      </div>
+
+      <!-- Tab 2: Schedule / 排程 -->
+      <div v-if="adminTab==='schedule'">
+        <div class="flex justify-between items-center mb-4 bg-white p-1 rounded-xl shadow-sm border border-gray-100">
+          <button @click="schedMode='day'" :class="schedMode==='day'?'bg-rose-900 text-white shadow':'text-gray-400'" class="flex-1 py-2 rounded-lg text-xs font-bold transition">日檢視</button>
+          <button @click="schedMode='month'" :class="schedMode==='month'?'bg-rose-900 text-white shadow':'text-gray-400'" class="flex-1 py-2 rounded-lg text-xs font-bold transition">月檢視</button>
+        </div>
+        
+        <div class="flex justify-between items-center mb-4 px-2">
+          <button @click="changeScheduleDate(-1)" class="w-8 h-8 flex items-center justify-center bg-white rounded-full shadow-sm text-gray-500"><i class="ri-arrow-left-s-line"></i></button>
+          <span class="font-bold text-rose-900 text-sm">{{ displayDate }}</span>
+          <button @click="changeScheduleDate(1)" class="w-8 h-8 flex items-center justify-center bg-white rounded-full shadow-sm text-gray-500"><i class="ri-arrow-right-s-line"></i></button>
+        </div>
+
+        <!-- Month View (Visual Fix) -->
+        <div v-if="schedMode==='month'" class="bg-white p-4 rounded-2xl shadow-sm">
+          <div class="cal-grid mb-2"><div v-for="d in ['日','一','二','三','四','五','六']" class="cal-head">{{d}}</div></div>
+          <div class="cal-grid">
+            <div v-for="b in monthBlanks" class="cal-cell"></div>
+            <div v-for="d in monthDays" :key="d" @click="selectDateFromCal(d)" 
+                 :class="['cal-cell', isToday(d)?'today':'', isSelected(d)?'selected':'', isOffDay(d)?'off-day':'']">
+              {{ d }}
+              <div v-if="hasEvent(d)" class="cal-dot"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Day View (Visual Fix) -->
+        <div v-if="schedMode==='day'" class="space-y-2">
+          <div v-if="daySlots.length===0" class="text-center py-10 text-gray-400 text-sm">讀取中...</div>
+          <div v-for="s in daySlots" :key="s.time" class="flex gap-3 items-center">
+            <div class="w-12 text-xs font-bold text-gray-400">{{ s.time }}</div>
+            <div :class="s.booked ? 'schedule-card' : 'bg-white border-gray-100 text-gray-400'" class="flex-1 p-3 rounded-xl border text-xs flex justify-between items-center shadow-sm">
+              <span>{{ s.booked ? s.info.name + ' (' + s.info.service + ')' : '空閒' }}</span>
+              <span v-if="s.booked" class="px-2 py-0.5 bg-black/20 rounded text-[10px]">{{ s.info.status }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 3: Orders -->
+      <div v-if="adminTab==='orders'" class="space-y-4">
+        <div v-for="ord in adminOrders" :key="ord.id" @click="openOrderDetail(ord)" class="bg-white p-5 rounded-2xl shadow-soft border border-rose-100/50 cursor-pointer">
+          <div class="flex justify-between mb-2"><span class="text-[10px] bg-gray-100 px-2 py-0.5 rounded font-bold">{{ ord.status }}</span><span class="font-serif font-bold text-rose-900">${{ ord.final }}</span></div>
+          <div class="font-serif font-bold text-lg text-rose-900 mb-1">{{ ord.name }}</div>
+          <div class="text-xs text-gray-400 font-sans">{{ ord.date }} {{ ord.time }} · {{ ord.service }}</div>
+        </div>
+      </div>
+
+      <!-- Tab 4: Dashboard -->
+      <div v-if="adminTab==='dashboard'" class="space-y-4">
+        <div class="grid grid-cols-2 gap-3">
+          <div class="bg-rose-900 text-cream p-5 rounded-3xl col-span-2 relative overflow-hidden shadow-xl">
+            <p class="text-xs font-bold opacity-50 uppercase tracking-widest">今日營收</p>
+            <h2 class="text-5xl font-serif font-bold mt-2">${{ stats.revenue.toLocaleString() }}</h2>
+            <div class="mt-4 flex gap-4 text-xs opacity-60"><span><i class="ri-bill-line"></i> {{ stats.todayCount }} 筆</span><span><i class="ri-time-line"></i> {{ stats.pending }} 待處理</span></div>
+            <i class="ri-money-dollar-circle-fill absolute -right-4 -bottom-4 text-[8rem] opacity-10"></i>
+          </div>
+          <div class="bg-white p-4 rounded-2xl shadow-sm"><p class="text-xs text-gray-400 font-bold">訂單數</p><div class="text-2xl font-bold text-rose-900">{{ stats.todayCount }}</div></div>
+          <div class="bg-white p-4 rounded-2xl shadow-sm"><p class="text-xs text-gray-400 font-bold">客單價</p><div class="text-2xl font-bold text-rose-900">${{ stats.avgOrder }}</div></div>
+        </div>
+        <div class="bg-white p-5 rounded-2xl shadow-sm">
+          <h3 class="font-bold text-rose-900 mb-3 text-sm">熱門服務 Top 1</h3>
+          <div class="flex items-center justify-between"><span class="text-sm text-gray-600">{{ stats.topService }}</span><i class="ri-fire-fill text-rose-500"></i></div>
+        </div>
+      </div>
+
+      <!-- Tab 5: Members -->
+      <div v-if="adminTab==='members'" class="space-y-4">
+        <div class="flex gap-2"><input v-model="memberSearch" placeholder="搜尋會員 (電話/姓名)" class="flex-1 p-3 bg-white rounded-xl text-sm shadow-sm outline-none"><button @click="loadMembers" class="bg-rose-900 text-white w-12 rounded-xl"><i class="ri-search-line"></i></button></div>
+        <div v-for="m in memberList" :key="m.phone" @click="openMemberDetail(m)" class="bg-white p-4 rounded-xl shadow-sm flex justify-between items-center cursor-pointer">
+          <div><div class="font-bold text-rose-900 text-sm">{{ m.name }}</div><div class="text-xs text-gray-400">{{ m.phone }}</div></div>
+          <i class="ri-arrow-right-s-line text-gray-300"></i>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Login Modal -->
   <div v-if="view === 'login'" class="fixed inset-0 z-[70] bg-[#4a4a4a]/95 backdrop-blur-md flex flex-col items-center justify-center p-8">
      <h2 class="font-serif font-bold text-2xl text-cream mb-8">店長後台</h2>
      <input v-model="pwd" type="password" placeholder="密碼" class="text-center text-3xl tracking-[0.3em] font-bold border-b-2 border-white/20 p-2 outline-none focus:border-rose-400 mb-8 w-full bg-transparent text-white placeholder-white/20">
-     <button @click="doLogin" :disabled="loading" class="w-full bg-rose-500 text-white py-4 rounded-2xl font-bold flex justify-center gap-2"><span v-if="loading">...</span><span v-else>登入</span></button>
+     <button @click="doLogin" :disabled="loading" class="w-full bg-rose-500 text-white py-4 rounded-2xl font-bold flex justify-center gap-2"><span v-if="loading"><i class="ri-loader-4-line animate-spin"></i></span><span v-else>登入</span></button>
      <p v-if="loginError" class="text-red-300 text-xs mt-4">{{ loginError }}</p>
      <button @click="view='home'" class="mt-8 text-white/40 text-xs font-bold tracking-widest">返回</button>
   </div>
 
-  <div v-if="view === 'admin'" class="fixed inset-0 z-50 bg-cream overflow-y-auto flex flex-col">
-    <div class="bg-white px-6 py-4 flex justify-between items-center shadow-sm sticky top-0 z-20"><h2 class="font-serif font-bold text-xl text-rose-900">店長後台</h2><button @click="logout" class="text-xs bg-gray-100 text-gray-500 px-3 py-1.5 rounded-lg font-bold">登出</button></div>
-    <div class="flex p-2 bg-white border-b border-gray-100 overflow-x-auto"><button v-for="t in ['dashboard','schedule','orders','pos','members']" :key="t" @click="switchAdminTab(t)" :class="adminTab===t?'text-rose-900 bg-rose-50 font-bold':'text-gray-400'" class="flex-1 py-2 px-3 rounded-lg text-xs capitalize whitespace-nowrap">{{ t==='pos'?'開單':t==='schedule'?'排程':t==='orders'?'訂單':t==='members'?'會員':'戰情' }}</button></div>
-    
-    <div class="flex-1 overflow-y-auto p-4 space-y-6 pb-24">
-      <!-- Admin Content (Same as previous, omitted for brevity but fully functional in logic) -->
-      <div v-if="adminTab==='dashboard'" class="space-y-4"><div class="grid grid-cols-2 gap-3"><div class="bg-rose-900 text-cream p-5 rounded-3xl col-span-2 relative overflow-hidden shadow-xl"><p class="text-xs font-bold opacity-50 uppercase tracking-widest">今日營收</p><h2 class="text-5xl font-serif font-bold mt-2">${{ stats.revenue.toLocaleString() }}</h2></div><div class="bg-white p-4 rounded-2xl shadow-sm"><p class="text-xs text-gray-400 font-bold">訂單數</p><div class="text-2xl font-bold text-rose-900">{{ stats.todayCount }}</div></div></div></div>
-      <!-- Other tabs handled by Vue Logic -->
+  <!-- Order Detail & Checkout Modal -->
+  <transition name="slide-up">
+    <div v-if="selectedOrder" class="fixed inset-0 z-[60] flex flex-col justify-end">
+      <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="selectedOrder=null"></div>
+      <div class="bg-cream w-full rounded-t-[32px] p-8 relative z-10 max-h-[90vh] overflow-y-auto">
+        <h3 class="text-xl font-bold text-rose-900 mb-6">
+          {{ isCheckoutMode ? '結帳收款' : '訂單詳情' }}
+        </h3>
+        
+        <div v-if="!isCheckoutMode" class="space-y-4 text-sm">
+          <div class="flex justify-between border-b pb-2"><span>姓名</span><span class="font-bold">{{ selectedOrder.name }}</span></div>
+          <div class="flex justify-between border-b pb-2"><span>電話</span><span class="font-bold">{{ selectedOrder.phone }}</span></div>
+          <div class="flex justify-between border-b pb-2"><span>服務</span><span class="font-bold">{{ selectedOrder.service }}</span></div>
+          <div class="flex justify-between border-b pb-2"><span>備註</span><span class="text-gray-500">{{ selectedOrder.note || '無' }}</span></div>
+          <div class="bg-rose-50 p-3 rounded-xl flex justify-between items-center mt-2"><span class="text-rose-900 font-bold">總金額</span><span class="text-xl font-bold text-rose-900">${{ selectedOrder.final }}</span></div>
+          
+          <div class="flex gap-3 mt-6">
+            <button @click="updateOrder(selectedOrder,'店家拒絕')" class="flex-1 py-3 bg-gray-200 text-gray-600 rounded-xl font-bold text-xs">拒絕</button>
+            <button v-if="selectedOrder.status!=='已完成'" @click="openCheckoutMode" class="flex-1 py-3 bg-green-600 text-white rounded-xl font-bold text-xs shadow-lg">結帳收款</button>
+          </div>
+        </div>
+
+        <!-- Checkout Form -->
+        <div v-else class="space-y-4">
+           <div><label class="text-xs font-bold text-gray-400">實付金額 (可修改)</label><input type="number" v-model="checkoutForm.final" class="w-full p-3 bg-white rounded-xl border font-bold text-lg text-rose-900"></div>
+           <div><label class="text-xs font-bold text-gray-400">服務項目 (可修改)</label><input v-model="checkoutForm.service" class="w-full p-3 bg-white rounded-xl border text-sm"></div>
+           <div class="grid grid-cols-2 gap-3">
+             <div><label class="text-xs font-bold text-gray-400">付款方式</label><select v-model="checkoutForm.payment" class="w-full p-3 bg-white rounded-xl border text-sm"><option v-for="p in options.payments" :value="p">{{p}}</option></select></div>
+             <div><label class="text-xs font-bold text-gray-400">備註</label><input v-model="checkoutForm.note" class="w-full p-3 bg-white rounded-xl border text-sm"></div>
+           </div>
+           <div class="flex gap-3 mt-4">
+             <button @click="isCheckoutMode=false" class="flex-1 py-3 bg-gray-100 rounded-xl font-bold text-gray-500">取消</button>
+             <button @click="submitCheckout" class="flex-1 py-3 bg-rose-900 text-white rounded-xl font-bold shadow-lg">確認結帳</button>
+           </div>
+        </div>
+      </div>
+    </div>
+  </transition>
+
+  <!-- Member Detail Modal -->
+  <transition name="slide-up">
+    <div v-if="viewMember" class="fixed inset-0 z-[60] flex flex-col justify-end">
+      <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="viewMember=null"></div>
+      <div class="bg-cream w-full rounded-t-[32px] p-8 relative z-10 max-h-[85vh] overflow-y-auto">
+        <div class="flex justify-between items-start mb-4">
+          <div><h3 class="text-2xl font-bold text-rose-900">{{ viewMember.info?.name }}</h3><p class="text-sm text-gray-400">{{ viewMember.info?.phone }}</p></div>
+          <div class="text-right"><span class="block text-xs text-gray-400">消費總額</span><span class="font-bold text-lg text-rose-900">${{ viewMember.info?.spent }}</span></div>
+        </div>
+        <div class="flex gap-2 mb-6"><span class="text-xs bg-rose-100 text-rose-700 px-2 py-1 rounded">{{ viewMember.info?.tag }}</span><span class="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded">來店 {{ viewMember.info?.count }} 次</span></div>
+        
+        <h4 class="font-bold text-sm text-gray-500 mb-3 border-b pb-1">編輯資料</h4>
+        <div class="grid grid-cols-2 gap-2 mb-6">
+           <select v-model="viewMember.info.tag" class="p-2 bg-white border rounded text-xs"><option v-for="t in options.tags" :value="t">{{t}}</option></select>
+           <input v-model="viewMember.info.note" placeholder="備註" class="p-2 bg-white border rounded text-xs">
+           <button @click="saveMemberInfo" class="col-span-2 bg-rose-900 text-white py-2 rounded text-xs">儲存變更</button>
+        </div>
+
+        <h4 class="font-bold text-sm text-gray-500 mb-3 border-b pb-1">消費紀錄</h4>
+        <div class="space-y-3">
+          <div v-for="h in viewMember.history" class="bg-white p-3 rounded-xl border border-gray-100 flex justify-between items-center text-xs">
+            <div><div class="font-bold text-gray-800">{{ h.service }}</div><div class="text-gray-400">{{ h.date }} · {{ h.status }}</div></div>
+            <div class="font-bold">${{ h.price }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </transition>
+
+  <!-- Success Ticket -->
+  <div v-if="view === 'success'" class="fixed inset-0 z-50 bg-[#4a4a4a]/90 backdrop-blur-md flex items-center justify-center p-6 animate-fade">
+    <div class="ticket w-full max-w-sm p-8 text-center bg-cream">
+      <div class="w-16 h-16 bg-sage/20 text-sage rounded-full flex items-center justify-center mx-auto mb-4 text-3xl"><i class="ri-check-fill"></i></div>
+      <h2 class="text-2xl font-serif font-bold text-rose-900">預約成功</h2><p class="text-gray-400 text-sm mb-8 font-sans">期待您的光臨</p>
+      <div class="dashed mb-8"></div>
+      <div class="space-y-4 text-left">
+        <div class="flex justify-between"><span class="text-gray-400 text-xs uppercase tracking-widest">服務項目</span><span class="font-bold text-rose-900 font-serif">{{ successData.serviceName }}</span></div>
+        <div class="flex justify-between"><span class="text-gray-400 text-xs uppercase tracking-widest">預約時間</span><span class="font-bold text-rose-900 font-serif">{{ successData.date }} {{ successData.time }}</span></div>
+        <div class="flex justify-between"><span class="text-gray-400 text-xs uppercase tracking-widest">訂單編號</span><span class="font-mono font-bold text-rose-500">{{ successData.bid }}</span></div>
+      </div>
+      <button @click="view='home'" class="w-full bg-rose-900 text-white py-4 rounded-xl font-bold mt-10 font-sans shadow-lg">完成</button>
     </div>
   </div>
 
@@ -183,8 +418,7 @@
   const { createApp, reactive, ref, computed, onMounted, watch } = Vue;
   createApp({
     setup() {
-      // 狀態變數
-      const initLoading = ref(true); // 控制全屏 Loading
+      const initLoading = ref(true); // 全局 Loading
       const view = ref('home'); const showBooking = ref(false); const showLookup = ref(false);
       const config = ref({}); const services = ref([]); const options = ref({}); const activeCat = ref('');
       const loading = ref(false); const slots = ref([]); const loadingSlots = ref(false); const slotsStatus=ref('');
@@ -192,12 +426,13 @@
       const successData = ref({}); const adminOrders = ref([]); const stats = ref({}); const pwd = ref('');
       const loginError = ref(''); const todayStr = new Date().toISOString().split('T')[0];
       const lookupPhone = ref(''); const myOrders = ref([]); const lookupSearched = ref(false);
+      
       const adminTab = ref('dashboard'); const selectedOrder = ref(null); const isCheckoutMode = ref(false);
-      const checkoutForm = reactive({}); const adminForm = reactive({ phone:'', name:'', serviceName:'', date:todayStr, time:'', price:0, paymentMethod:'現金' });
+      const checkoutForm = reactive({});
+      const adminForm = reactive({ phone:'', name:'', serviceName:'', date:todayStr, time:'', price:0, paymentMethod:'現金' });
       const schedMode = ref('day'); const schedDate = ref(new Date()); const monthBookings = ref([]); const daySlots = ref([]); const offDays = ref([]);
       const memberSearch = ref(''); const memberList = ref([]); const viewMember = ref(null);
 
-      // API Helper (加強錯誤處理)
       const callApi = async (action, params = {}, method = 'GET') => {
         let url = `${API_URL}${API_URL.includes('?')?'&':'?'}action=${action}`;
         let opt = { method };
@@ -222,9 +457,9 @@
           const res = await callApi('init');
           config.value = res.config; services.value = res.services; options.value = res.options;
           if(services.value.length) activeCat.value = services.value[0].category;
-          initLoading.value = false; // 載入成功，關閉 Loading
+          initLoading.value = false;
         } catch(e) {
-          alert("初始化失敗，請檢查 API 網址是否正確 (V30)");
+          alert("初始化失敗，請檢查 API 網址或 Google Sheet 權限");
         }
       });
 
@@ -232,15 +467,14 @@
       const filteredServices = computed(() => services.value.filter(s => s.category === activeCat.value));
       const isOpenNow = computed(() => { if(!config.value.WorkHours) return false; const h = new Date().getHours(); const p=config.value.WorkHours.split(','); return h>=Number(p[0]) && h<Number(p[1]); });
 
-      // Actions
       const openBooking = (svc) => { Object.assign(form, {serviceName:svc.name, price:svc.price, svcImage:svc.image, date:'', time:''}); showBooking.value=true; };
       const fetchSlots = async () => { if(!form.date) return; loadingSlots.value=true; slots.value=[]; const res = await callApi('slots', {date:form.date}); slots.value = res.slots; slotsStatus.value = res.status; loadingSlots.value=false; };
       const submitOrder = async () => { if(!form.time) return alert('請填寫完整'); loading.value=true; const res = await callApi('book', JSON.parse(JSON.stringify(form)), 'POST'); loading.value=false; if(res.status==='success') { successData.value=res.data; showBooking.value=false; view.value='success'; } else alert(res.msg); };
       const doLookup = async () => { if(!lookupPhone.value) return; loading.value=true; myOrders.value=[]; lookupSearched.value=false; const res = await callApi('lookup', {phone:lookupPhone.value}); loading.value=false; myOrders.value=res.orders; lookupSearched.value=true; };
-      const doLogin = async () => { loading.value=true; loginError.value=''; try { const res = await callApi('login', {pwd:pwd.value}); loading.value=false; if(res.status==='success') { adminOrders.value=res.orders; stats.value=res.stats; if(res.members) memberList.value=res.members; view.value='admin'; } else { loginError.value=res.msg; pwd.value=''; } } catch(e){ loading.value=false; loginError.value='連線錯誤'; } };
+
+      const doLogin = async () => { loading.value=true; loginError.value=''; try { const res = await callApi('login', {pwd:pwd.value}); loading.value=false; if(res.status==='success') { adminOrders.value=res.orders; stats.value=res.stats; if(res.members) memberList.value=res.members; view.value='admin'; loadMonthSchedule(); } else { loginError.value=res.msg; pwd.value=''; } } catch(e){ loading.value=false; loginError.value='連線錯誤'; } };
       const logout = () => { pwd.value=''; view.value='home'; };
       
-      // Admin Functions
       const openOrderDetail = (ord) => { selectedOrder.value = ord; isCheckoutMode.value = false; };
       const updateOrder = async (ord, s) => { if(!confirm('確認變更?')) return; ord.status = s; selectedOrder.value=null; await callApi('updateStatus', {row:ord.rowIndex, status:s}, 'POST'); };
       const checkoutOrder = async (ord) => { if(!confirm('確認結帳並標記為完成?')) return; ord.status = '已完成'; selectedOrder.value=null; await callApi('checkout', {row:ord.rowIndex}, 'POST'); };
